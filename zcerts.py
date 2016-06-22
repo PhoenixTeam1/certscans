@@ -53,7 +53,7 @@ def parse_args():
 		"-B",
 		"--bandwidth",
 		metavar="BWIDTH",
-		type=int,
+		type=str,
 		help="send rate in bits/sec; support G, M, and K suffixes; "
 			"overrides --rate flag")
 	parser.add_argument(
@@ -113,7 +113,7 @@ def generate_cmd_strings(args):
 
 	if args.bandwidth:
 		zmap_cmd.append("-B")
-		zmap_cmd.append(str(args.bandwidth))
+		zmap_cmd.append(args.bandwidth)
 
 	if args.blacklist:
 		zmap_cmd.append("-b")
@@ -163,15 +163,27 @@ def process_certs():
 	zgrab_out_file = open(ZGRAB_OUT,"r")
 
 	for line in zgrab_out_file:
+		line = line.strip()
+		if line == "":
+			continue
 		data = json.loads(line)
 		transformed_data = {}
 		transformed_data['ip'] = data['ip']
+		if "error" in data:
+			transformed_data['error'] = True
+		else:
+			transformed_data['error'] = False
 		# how to get hostname? CN?
-		transformed_data['certificates'] = {}
-		transformed_data['certificates']['chain'] = data['data']['tls']['server_certificates']['chain']
-		transformed_data['certificates']['certificate'] = data['data']['tls']['server_certificates']['certificate']
+		# timestamp each cert?
+		if not transformed_data['error']:
+			transformed_data['certificates'] = {}
+			if "chain" in data['data']['tls']['server_certificates']:
+				transformed_data['certificates']['chain'] = data['data']['tls']['server_certificates']['chain']
+			else:
+				transformed_data['certificates']['chain'] = {}
+			transformed_data['certificates']['certificate'] = data['data']['tls']['server_certificates']['certificate']
 
-		zcerts_out_file.write(json.dumps(transformed_data))
+		zcerts_out_file.write(json.dumps(transformed_data)+"\n")
 
 	zcerts_out_file.close()
 	zgrab_out_file.close()
