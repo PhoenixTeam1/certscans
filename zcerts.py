@@ -17,6 +17,9 @@ import json
 ZMAP_OUT_DEFAULT = "zmap.out"
 ZGRAB_OUT_DEFAULT = "zgrab.out"
 ZCERTS_OUT_DEFAULT = "zcerts.out"
+ZMAP_OUT = ZMAP_OUT_DEFAULT
+ZGRAB_OUT = ZGRAB_OUT_DEFAULT
+ZCERTS_OUT = ZCERTS_OUT_DEFAULT
 
 # setup a robust argument parser
 def parse_args():
@@ -123,12 +126,7 @@ def generate_cmd_strings(args):
 		for host in args.hosts:
 			zmap_cmd.append(host)
 
-	ztee_cmd = ["ztee"]
-
-	if args.zmap_out:
-		ztee_cmd.append(args.zmap_out)
-	else:
-		ztee_cmd.append(ZGRAB_OUT_DEFAULT)
+	ztee_cmd = ["ztee", ZMAP_OUT]
 
 	zgrab_cmd = ["zgrab"]
 
@@ -140,11 +138,7 @@ def generate_cmd_strings(args):
 
 	zgrab_cmd.append("--tls")
 
-	if args.zgrab_out:
-		zgrab_out_filename = args.zgrab_out
-	else:
-		zgrab_out_filename = ZGRAB_OUT_DEFAULT
-	zgrab_cmd.append("--output-file=" + zgrab_out_filename)
+	zgrab_cmd.append("--output-file=" + ZGRAB_OUT)
 
 	cmds = [zmap_cmd, ztee_cmd, zgrab_cmd]
 
@@ -164,13 +158,38 @@ def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
 
 # TODO: finish this phase; potentially bypass writing zgrab output directly 
 # to file and instead parse as stream and write just certs to file
-# def process_certs(zcerts_out_filename):
-	# zcerts_out_file = open(zcerts_out_filename,"w")
+def process_certs():
+	zcerts_out_file = open(ZCERTS_OUT,"w")
+	zgrab_out_file = open(ZGRAB_OUT,"r")
+
+	for line in zgrab_out_file:
+		data = json.loads(line)
+		transformed_data = {}
+		transformed_data['ip'] = data['ip']
+		# how to get hostname? CN?
+		transformed_data['certificates'] = {}
+		transformed_data['certificates']['chain'] = data['data']['tls']['server_certificates']['chain']
+		transformed_data['certificates']['certificate'] = data['data']['tls']['server_certificates']['certificate']
+
+		zcerts_out_file.write(json.dumps(transformed_data))
+
+	zcerts_out_file.close()
+	zgrab_out_file.close()
 
 def main():
+	global ZMAP_OUT, ZGRAB_OUT, ZCERTS_OUT
+
 	args = parse_args()
+
+	if args.zmap_out:
+		ZMAP_OUT = args.zmap_out
+	if args.zgrab_out:
+		ZGRAB_OUT = args.zgrab_out
+	if args.zcerts_out:
+		ZCERTS_OUT = args.zcerts_out
+
 	zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args)
 	grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd)
-	# process_certs(args.zcerts_out)
+	process_certs()
 
 main()
