@@ -15,8 +15,7 @@ NOTE: it is unclear whether ztee is installed as well when using yum
 sudo yum install zmap
 ```
 ##### From source
-Refer to https://zmap.io/download.html
-<b/>
+Refer to https://zmap.io/download.html  
 NOTE: I found on RHEL that unistr.h was missing when compiling from source. This can be installed via yum:
 ```
 sudo yum install libunistring-devel
@@ -33,7 +32,8 @@ Depending on your sudoer setup, you may encounter some issues when trying to run
 - edit the secure_path to include /usr/local/sbin
 - copy zmap and the related binaries to a path included in secure_path
 - setup zmap so that it does not require sudo privileges
-Zmap can be given explicit privileges to capture network data without the need for root as below:
+Zmap can be given explicit privileges to capture network data without the need for root as below:  
+  
 ```
 setcap cap_net_raw=ep /usr/local/sbin/zmap
 ```
