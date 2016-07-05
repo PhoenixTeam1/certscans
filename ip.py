@@ -6,7 +6,7 @@ import csv
 file = open("top-1m.csv", 'rb')
 reader = csv.reader(file, delimiter = ',')
 
-host = []
+hostname = []
 for i in reader:
 	hostname.append(i[1])
 
