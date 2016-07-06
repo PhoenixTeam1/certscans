@@ -13,6 +13,7 @@
 import subprocess
 import argparse
 import json
+import os
 
 ZMAP_OUT_DEFAULT = "zmap.out"
 ZGRAB_OUT_DEFAULT = "zgrab.out"
@@ -64,14 +65,6 @@ def parse_args():
 		help="filepath for blacklisted IPs/IP blocks; defaults to " \
 			"/etc/zmap/blacklist.conf")
 	parser.add_argument(
-		"-H",
-		"--hosts",
-		metavar="HOST",
-		type=str,
-		nargs="+",
-		help="the IP(s) to scan; accepts a list of IP addresses or blocks" \
-			"in CIDR notation; defaults to the full IPv4 address space")
-	parser.add_argument(
 		"--zmap-out",
 		metavar="ZMAP_OUT",
 		type=str,
@@ -86,6 +79,22 @@ def parse_args():
 		metavar="ZCERTS_OUT",
 		type=str,
 		help="the file to output the certs parsed from the zgrab results to")
+	ip_subnet_group = parser.add_mutually_exclusive_group()
+	ip_subnet_group.add_argument(
+		"-H",
+		"--hosts",
+		metavar="HOST",
+		type=str,
+		nargs="+",
+		help="the IP(s) to scan; accepts a list of IP addresses or blocks" \
+			"in CIDR notation; defaults to the full IPv4 address space")
+	ip_subnet_group.add_argument(
+		"-w",
+		"--whitelist",
+		metavar="WHITELIST",
+		type=str,
+		help="filepath for IPs/subnets to scan (CIDR notation); one " \
+			"IP/subnet per line")
 
 	return parser.parse_args()
 
@@ -125,6 +134,11 @@ def generate_cmd_strings(args):
 	if args.hosts:
 		for host in args.hosts:
 			zmap_cmd.append(host)
+	elif args.whitelist:
+		if not os.path.exists(args.whitelist):
+			raise IOError("Path provided for whitelist does not exist")
+		zmap_cmd.append("-w")
+		zmap_cmd.append(args.whitelist)
 
 	ztee_cmd = ["ztee", ZMAP_OUT]
 
