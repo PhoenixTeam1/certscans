@@ -95,6 +95,14 @@ def parse_args():
 		type=str,
 		help="filepath for IPs/subnets to scan (CIDR notation); one " \
 			"IP/subnet per line")
+	ip_subnet_group.add_argument(
+		"-I",
+		"--list-ips",
+		metavar="LIST_IPS",
+		type=str,
+		help="filepath for individual IPs (no subnets) to scan; should " \
+			"only be used in place of whitelist option when scanning more " \
+			"than 10 million individual IPs")
 
 	return parser.parse_args()
 
@@ -139,6 +147,11 @@ def generate_cmd_strings(args):
 			raise IOError("Path provided for whitelist does not exist")
 		zmap_cmd.append("-w")
 		zmap_cmd.append(args.whitelist)
+	elif args.list_ips:
+		if not os.path.exists(args.list_ips):
+			raise IOError("Path provided for list of IPs does not exist")
+		zmap_cmd.append("-I")
+		zmap_cmd.append(args.list_ips)
 
 	ztee_cmd = ["ztee", ZMAP_OUT]
 
