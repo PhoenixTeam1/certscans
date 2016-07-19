@@ -1,0 +1,5 @@
+*.db
+JSON
+*.json
+*.log
+misc_scripts
