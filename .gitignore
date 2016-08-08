@@ -3,3 +3,4 @@ JSON
 *.json
 *.log
 misc_scripts
+.~lock*
