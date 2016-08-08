@@ -1,6 +1,5 @@
 *.db
-JSON
+*.db.*
 *.json
 *.log
-misc_scripts
 .~lock*
