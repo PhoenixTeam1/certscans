@@ -85,7 +85,7 @@ def process(args):
 	if args.dom1:
 		cursor.execute("SELECT ip,domain FROM certs")
 	else:
-		cursor.execute("SELECT ip,domain FROM pairs")
+		cursor.execute("SELECT ip,domain FROM pairs WHERE seen_everywhere=1")
 	print "Fetching ip-dom pairs..."
 	pairs = set(cursor.fetchall())
 	print "Done!"
