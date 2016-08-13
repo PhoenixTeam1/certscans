@@ -30,6 +30,15 @@ def parse_args():
 		"--clear",
 		action="store_true",
 		help="flag to clear the db")
+	dom_group = parser.add_mutually_exclusive_group()
+	dom_group.add_argument(
+		"--dom1",
+		action="store_true",
+		help="flag to use all domain-ip pairs (default)")
+	dom_group.add_argument(
+		"--dom2",
+		action="store_true",
+		help="flag to use only domain-ip pairs that appear in all scans")	
 	return parser.parse_args()
 
 def init_tables():
@@ -73,8 +82,10 @@ def process(args):
 	conn = sqlite3.connect(DATABASE)
 
 	cursor = conn.cursor()
-
-	cursor.execute("SELECT ip,domain FROM certs")
+	if args.dom1:
+		cursor.execute("SELECT ip,domain FROM certs")
+	else:
+		cursor.execute("SELECT ip,domain FROM pairs WHERE seen_everywhere=1")
 	print "Fetching ip-dom pairs..."
 	pairs = set(cursor.fetchall())
 	print "Done!"
@@ -136,6 +147,9 @@ def process(args):
 
 def main():
 	args = parse_args()
+
+	if (not args.dom1) and (not args.dom2):
+		args.dom1 = True
 
 	if args.init:
 		init_tables()
