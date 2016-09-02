@@ -1,3 +1,5 @@
+
+
 # zcerts.py
 # 
 # Essentially a python wrapper around zmap, ztee and zgrab to avoid clunky
@@ -14,6 +16,8 @@ import subprocess
 import argparse
 import json
 import os
+import time
+from time import asctime
 
 ZMAP_OUT_DEFAULT = "zmap.out"
 ZGRAB_OUT_DEFAULT = "zgrab.out"
@@ -155,7 +159,7 @@ def generate_cmd_strings(args):
 
 	ztee_cmd = ["ztee", ZMAP_OUT]
 
-	zgrab_cmd = ["zgrab"]
+	zgrab_cmd = ["./zgrab"]
 
 	zgrab_cmd.append("--port")
 	if args.port:
@@ -166,6 +170,9 @@ def generate_cmd_strings(args):
 	zgrab_cmd.append("--tls")
 
 	zgrab_cmd.append("--output-file=" + ZGRAB_OUT)
+
+	zgrab_cmd.append("-data")
+	zgrab_cmd.append("http-req")
 
 	cmds = [zmap_cmd, ztee_cmd, zgrab_cmd]
 
@@ -186,7 +193,7 @@ def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
 # TODO: finish this phase; potentially bypass writing zgrab output directly 
 # to file and instead parse as stream and write just certs to file
 def process_certs():
-	zcerts_out_file = open(ZCERTS_OUT,"w")
+	zcerts_out_file = open(ZCERTS_OUT,"a")
 	zgrab_out_file = open(ZGRAB_OUT,"r")
 
 	for line in zgrab_out_file:
@@ -210,6 +217,8 @@ def process_certs():
 				transformed_data['certificates']['chain'] = {}
 			transformed_data['certificates']['certificate'] = data['data']['tls']['server_certificates']['certificate']
 
+                transformed_data['time'] = time.asctime()
+
 		zcerts_out_file.write(json.dumps(transformed_data)+"\n")
 
 	zcerts_out_file.close()
@@ -232,3 +241,5 @@ def main():
 	process_certs()
 
 main()
+
+
