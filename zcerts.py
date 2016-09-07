@@ -1,5 +1,4 @@
 
-
 # zcerts.py
 # 
 # Essentially a python wrapper around zmap, ztee and zgrab to avoid clunky
@@ -262,6 +261,8 @@ def process_certs():
             transformed_data['error'] = False
         # how to get hostname? CN?
         # timestamp each cert?
+        transformed_data['timestamp'] = data['timestamp']
+        
         if not transformed_data['error']:
             transformed_data['certificates'] = {}
             if "chain" in data['data']['tls']['server_certificates']:
@@ -270,8 +271,7 @@ def process_certs():
                 transformed_data['certificates']['chain'] = {}
             transformed_data['certificates']['certificate'] = data['data']['tls']['server_certificates']['certificate']
 
-            # probably will be incorrect if you use filepath
-            transformed_data['time'] = time.asctime()
+        
 
         zcerts_out_file.write(json.dumps(transformed_data)+"\n")
 
