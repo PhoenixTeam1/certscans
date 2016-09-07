@@ -181,44 +181,37 @@ def generate_cmd_strings(args):
 # add domain to ZMAP_OUT
 def domain():
 
-    host_ip = {}
-    with open('ips.json', 'r') as host_ip_file:
-
-        for line in host_ip_file:
-
-            json_data = json.loads(line)
-
-            for i in json_data:
-
-                host = i
-
-                ip_list = json_data[i]
-
-                to_add = {host:ip_list}
-
-                host_ip.update(to_add)
-    
     new_file = ''
     with open(ZMAP_OUT, 'r') as zmap_file:
 
-        for line in zmap_file:
+        for ip in zmap_file:
 
-            ip = line.strip()
-            host = ''
-            
-            for i in host_ip:
+            ip = ip.strip()
 
-                ip_list = host_ip[i]
+            domains = []
+            with open('ip-host.json', 'r') as host_ip_file:
 
-                if ip in ip_list:
+                for line in host_ip_file:
 
-                    host = i
-                    break
-             
-             new_file = ip + ',' + host + '\n'
-             # to change domain you would have to change host to whatever domain you want
-             #new_file = ip + ',' + 'ampproject.org\n'
+                    json_data = json.loads(line)
 
+                    for i in json_data:
+
+                        if i == ip:
+
+                            domains = json_data[i]
+                            break
+
+            if domains:
+
+                for i in domains:
+
+                    new_file += ip + ',' + i + '\n'
+                    
+            else:
+
+                new_file += ip + '\n' 
+    
     with open(ZMAP_OUT, 'w') as zmap_file:
 
         zmap_file.write(new_file)
@@ -302,3 +295,5 @@ def main():
     process_certs()
 
 main()
+
+
