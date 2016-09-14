@@ -1,4 +1,3 @@
-
 # zcerts.py
 # 
 # Essentially a python wrapper around zmap, ztee and zgrab to avoid clunky
@@ -260,6 +259,7 @@ def process_certs():
         else:
             transformed_data['error'] = False
         # how to get hostname? CN?
+        transformed_data['domain'] = data['domain']
         # timestamp each cert?
         transformed_data['timestamp'] = data['timestamp']
         
