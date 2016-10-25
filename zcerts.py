@@ -16,6 +16,7 @@ import json
 import os
 import time
 from time import asctime
+import csv
 
 ZMAP_OUT_DEFAULT = "zmap.out"
 ZGRAB_OUT_DEFAULT = "zgrab.out"
@@ -169,8 +170,9 @@ def generate_cmd_strings(args):
 
     zgrab_cmd.append("--output-file=" + ZGRAB_OUT)
 
-    zgrab_cmd.append("-data")
-    zgrab_cmd.append("http-req")
+    # Sam added this; don't think it should be necessary; will remove in later commit when confident I am right
+    # zgrab_cmd.append("-data")
+    # zgrab_cmd.append("http-req")
 
     cmds = [zmap_cmd, ztee_cmd, zgrab_cmd]
 
@@ -178,41 +180,28 @@ def generate_cmd_strings(args):
 
 # add domain to ZMAP_OUT
 def domain():
+    success_ips = []
 
-    new_file = ''
-    with open(ZMAP_OUT, 'r') as zmap_file:
-
-        for ip in zmap_file:
-
+    # open ZMAP output; read all IPs to memory
+    with open(ZMAP_OUT, 'r') as zmap_out_file:
+        # iterate over IPs
+        for ip in zmap_out_file:
             ip = ip.strip()
+            if ip == "":
+                continue
+            success_ips.append(ip.strip())
 
-            domains = []
-            with open('ip-host.json', 'r') as host_ip_file:
+    success_ips = set(success_ips)
 
-                for line in host_ip_file:
-
-                    json_data = json.loads(line)
-
-                    for i in json_data:
-
-                        if i == ip:
-
-                            domains = json_data[i]
-                            break
-
-            if domains:
-
-                for i in domains:
-
-                    new_file += ip + ',' + i + '\n'
-                    
-            else:
-
-                new_file += ip + '\n' 
-    
-    with open(ZMAP_OUT, 'w') as zmap_file:
-
-        zmap_file.write(new_file)
+    with open('ip-host.csv', 'rb') as ip_host_file, open(ZMAP_OUT, 'wb') as zmap_out_file:
+        # setup CSV reader/writer
+        ip_host_reader = csv.reader(ip_host_file,delimiter=",")
+        zmap_out_writer = csv.writer(zmap_out_file,delimiter=",")
+        # iterate over pairs
+        for ip,host in ip_host_reader:
+            # if the ip of the pair was a sucess IP from zmap, add it to the output
+            if ip in success_ips:
+                zmap_out_writer.write([ip,host])
 
 # execute zmap, ztee and zgrab
 def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
@@ -228,17 +217,24 @@ def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
     zgrab_proc.communicate()
     '''
 
-    zmap_proc = subprocess.Popen(zmap_cmd,stdout=subprocess.PIPE)
-    ztee_proc = subprocess.Popen(
-        ztee_cmd,
-        stdin=zmap_proc.stdout)
+    null_out = open(os.devnull,'w')
+
+    zmap_proc = subprocess.Popen(zmap_cmd,stdout=devnull)
+    # I believe ztee can safely be ignored for the moment
+    # ztee_proc = subprocess.Popen(
+    #     ztee_cmd,
+    #     stdin=zmap_proc.stdout)
     zmap_proc.stdout.close()
-    ztee_proc.communicate()
+    # ztee_proc.communicate()
+    
+    # add domains to the ZMAP_OUT
     domain()
 
-    cat_proc = subprocess.Popen(['cat', ZMAP_OUT],stdout=subprocess.PIPE)
-    zgrab_proc = subprocess.Popen(zgrab_cmd,stdin=cat_proc.stdout)
-    cat_proc.stdout.close()
+    # I think I can bypass Sam's cat hack by just using ZMAP_OUT for stdin
+    # cat_proc = subprocess.Popen(['cat', ZMAP_OUT],stdout=subprocess.PIPE)
+    zmap_out_file = open(ZMAP_OUT,"rb")
+    zgrab_proc = subprocess.Popen(zgrab_cmd,stdin=zmap_out_file)
+    # cat_proc.stdout.close()
     zgrab_proc.communicate()
 
 # TODO: finish this phase; potentially bypass writing zgrab output directly 
@@ -258,11 +254,11 @@ def process_certs():
             transformed_data['error'] = True
         else:
             transformed_data['error'] = False
-        # how to get hostname? CN?
-        transformed_data['domain'] = data['domain']
-        # timestamp each cert?
+        if 'domain' in data:
+            transformed_data['domain'] = data['domain']
+        else:
+            transformed_data['domain'] = None
         transformed_data['timestamp'] = data['timestamp']
-        
         if not transformed_data['error']:
             transformed_data['certificates'] = {}
             if "chain" in data['data']['tls']['server_certificates']:
@@ -270,8 +266,6 @@ def process_certs():
             else:
                 transformed_data['certificates']['chain'] = {}
             transformed_data['certificates']['certificate'] = data['data']['tls']['server_certificates']['certificate']
-
-        
 
         zcerts_out_file.write(json.dumps(transformed_data)+"\n")
 
