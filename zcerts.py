@@ -26,6 +26,10 @@ ZGRAB_OUT = ZGRAB_OUT_DEFAULT
 ZCERTS_OUT = ZCERTS_OUT_DEFAULT
 
 # setup a robust argument parser
+# NOTE: there is NO error checking here to make sure that domain names aren't 
+# being supplied when the -W or -I flags are being used; if they are the script 
+# will behave as if nothing is wrong and SNI support will not be enabled
+# TODO: fix the issue outliend by the above note :)
 def parse_args():
     parser = argparse.ArgumentParser(description="Utilizes zmap and zgrab " \
         "to enumerate HTTPS hosts and collect their certificate chains")
