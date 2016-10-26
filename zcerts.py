@@ -224,8 +224,11 @@ def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
     # ztee_proc = subprocess.Popen(
     #     ztee_cmd,
     #     stdin=zmap_proc.stdout)
-    zmap_proc.stdout.close()
+    # zmap_proc.stdout.close()
     # ztee_proc.communicate()
+
+    # wait for zmap to finish
+    zmap_proc.communicate()
     
     # add domains to the ZMAP_OUT
     domain()
