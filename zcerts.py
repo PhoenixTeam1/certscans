@@ -84,13 +84,13 @@ def parse_args():
         help="the file to output the certs parsed from the zgrab results to")
     ip_subnet_group = parser.add_mutually_exclusive_group()
     ip_subnet_group.add_argument(
-        "-H",
-        "--hosts",
-        metavar="HOST",
+        "-N",
+        "--in-line",
+        metavar="IP_ADDR",
         type=str,
         nargs="+",
-        help="the IP(s) to scan; accepts a list of IP addresses or blocks" \
-            "in CIDR notation; defaults to the full IPv4 address space")
+        help="the IP(s) to scan; accepts a list of IP addresses or blocks," \
+            "inline, in CIDR notation; defaults to the full IPv4 address space")
     ip_subnet_group.add_argument(
         "-w",
         "--whitelist",
@@ -106,6 +106,12 @@ def parse_args():
         help="filepath for individual IPs (no subnets) to scan; should " \
             "only be used in place of whitelist option when scanning more " \
             "than 10 million individual IPs")
+    ip_subnet_group.add_argument(
+        "-D",
+        "--list-domains",
+        metavar="LIST_DOMAINS",
+        type=str,
+        help="filepath for individual domain names to scan")
 
     return parser.parse_args()
 
