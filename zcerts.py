@@ -219,7 +219,7 @@ def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
 
     null_out = open(os.devnull,'w')
 
-    zmap_proc = subprocess.Popen(zmap_cmd,stdout=devnull)
+    zmap_proc = subprocess.Popen(zmap_cmd,stdout=null_out)
     # I believe ztee can safely be ignored for the moment
     # ztee_proc = subprocess.Popen(
     #     ztee_cmd,
