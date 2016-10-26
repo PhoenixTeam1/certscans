@@ -16,12 +16,12 @@ PAIRS_OUT_DEFAULT = "ip-host.csv"
 def parse_args():
     parser = argparse.ArgumentParser(
         prog="ipfetch.py",
-        description="Takes a list of hostnames and attempts to re4solve them \
+        description="Takes a list of hostnames and attempts to resolve them \
         to IPs via DNS requests; outputs a file listing just the IPs as well \
         as a CSV of IP-host pairs")
     parser.add_argument(
         "host_file",
-        metavar="HOSt_FILE",
+        metavar="HOST_FILE",
         type=str,
         help="the file to read in the hostnames from")
     parser.add_argument(
