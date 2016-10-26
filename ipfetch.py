@@ -61,8 +61,8 @@ def process_hosts(host_filename,ips_out_filename=None,pairs_out_filename=None):
             # get the IP
             ip = socket.gethostbyname(hostname)
             # write to the output files
-            ips_writer.write([ip])
-            pairs_writer.write([ip,hostname])
+            ips_writer.writerow([ip])
+            pairs_writer.writerow([ip,hostname])
 
 # the main procedure
 def main():

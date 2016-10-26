@@ -201,7 +201,7 @@ def domain():
         for ip,host in ip_host_reader:
             # if the ip of the pair was a sucess IP from zmap, add it to the output
             if ip in success_ips:
-                zmap_out_writer.write([ip,host])
+                zmap_out_writer.writerow([ip,host])
 
 # execute zmap, ztee and zgrab
 def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
