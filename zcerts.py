@@ -217,18 +217,21 @@ def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
     zgrab_proc.communicate()
     '''
 
-    null_out = open(os.devnull,'w')
+    # null_out = open(os.devnull,'w')
 
-    zmap_proc = subprocess.Popen(zmap_cmd,stdout=null_out)
-    # I believe ztee can safely be ignored for the moment
-    # ztee_proc = subprocess.Popen(
-    #     ztee_cmd,
-    #     stdin=zmap_proc.stdout)
-    # zmap_proc.stdout.close()
-    # ztee_proc.communicate()
+    # zmap_proc = subprocess.Popen(zmap_cmd,stdout=null_out)
+
+    # TODO: clean this up and the generate_cmd_strings function to bypass
+    # ztee entirely; this works as is, but its not very elegant
+    zmap_proc = subprocess.Popen(zmap_cmd,stdout=subprocess.PIPE)
+    ztee_proc = subprocess.Popen(
+        ztee_cmd,
+        stdin=zmap_proc.stdout)
+    zmap_proc.stdout.close()
+    ztee_proc.communicate()
 
     # wait for zmap to finish
-    zmap_proc.communicate()
+    # zmap_proc.communicate()
     
     # add domains to the ZMAP_OUT
     domain()
