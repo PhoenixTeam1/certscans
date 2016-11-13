@@ -168,7 +168,7 @@ def generate_cmd_strings(args):
 
     ztee_cmd = ["ztee", ZMAP_OUT]
 
-    zgrab_cmd = ["./zgrab"]
+    zgrab_cmd = ["zgrab"]
 
     zgrab_cmd.append("--port")
     if args.port:
@@ -179,11 +179,7 @@ def generate_cmd_strings(args):
     zgrab_cmd.append("--tls")
 
     zgrab_cmd.append("--output-file=" + ZGRAB_OUT)
-
-    # Sam added this; don't think it should be necessary; will remove in later commit when confident I am right
-    # zgrab_cmd.append("-data")
-    # zgrab_cmd.append("http-req")
-
+    
     cmds = [zmap_cmd, ztee_cmd, zgrab_cmd]
 
     return cmds
@@ -200,34 +196,8 @@ def process_domains(domains):
             print "Failed to resolve domain: %s" % dom
     return dom_ip
 
-# add domain to ZMAP_OUT
-def domain():
-    success_ips = []
-
-    # open ZMAP output; read all IPs to memory
-    with open(ZMAP_OUT, 'r') as zmap_out_file:
-        # iterate over IPs
-        for ip in zmap_out_file:
-            ip = ip.strip()
-            if ip == "":
-                continue
-            success_ips.append(ip.strip())
-
-    success_ips = set(success_ips)
-
-    with open('ip-host.csv', 'rb') as ip_host_file, open(ZMAP_OUT, 'wb') as zmap_out_file:
-        # setup CSV reader/writer
-        ip_host_reader = csv.reader(ip_host_file,delimiter=",")
-        zmap_out_writer = csv.writer(zmap_out_file,delimiter=",")
-        # iterate over pairs
-        for ip,host in ip_host_reader:
-            # if the ip of the pair was a sucess IP from zmap, add it to the output
-            if ip in success_ips:
-                zmap_out_writer.writerow([ip,host])
-
 # execute zmap, ztee and zgrab
 def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
-    '''
     zmap_proc = subprocess.Popen(zmap_cmd,stdout=subprocess.PIPE)
     ztee_proc = subprocess.Popen(
         ztee_cmd,
@@ -236,33 +206,6 @@ def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
     zmap_proc.stdout.close()
     zgrab_proc = subprocess.Popen(zgrab_cmd,stdin=ztee_proc.stdout)
     ztee_proc.stdout.close()
-    zgrab_proc.communicate()
-    '''
-
-    # null_out = open(os.devnull,'w')
-
-    # zmap_proc = subprocess.Popen(zmap_cmd,stdout=null_out)
-
-    # TODO: clean this up and the generate_cmd_strings function to bypass
-    # ztee entirely; this works as is, but its not very elegant
-    zmap_proc = subprocess.Popen(zmap_cmd,stdout=subprocess.PIPE)
-    ztee_proc = subprocess.Popen(
-        ztee_cmd,
-        stdin=zmap_proc.stdout)
-    zmap_proc.stdout.close()
-    ztee_proc.communicate()
-
-    # wait for zmap to finish
-    # zmap_proc.communicate()
-    
-    # add domains to the ZMAP_OUT
-    domain()
-
-    # I think I can bypass Sam's cat hack by just using ZMAP_OUT for stdin
-    # cat_proc = subprocess.Popen(['cat', ZMAP_OUT],stdout=subprocess.PIPE)
-    zmap_out_file = open(ZMAP_OUT,"rb")
-    zgrab_proc = subprocess.Popen(zgrab_cmd,stdin=zmap_out_file)
-    # cat_proc.stdout.close()
     zgrab_proc.communicate()
 
 # TODO: finish this phase; potentially bypass writing zgrab output directly 
