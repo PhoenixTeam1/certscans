@@ -188,6 +188,18 @@ def generate_cmd_strings(args):
 
     return cmds
 
+# for a given list of domain names return a dict mapping them to an IP
+def process_domains(domains):
+    dom_ip = dict()
+    for dom in domains:
+        # skip dom if == "" ?
+        try:
+            ip = socket.gethostbyname(dom)
+            dom_ip[dom] = ip
+        except:
+            print "Failed to resolve domain: %s" % dom
+    return dom_ip
+
 # add domain to ZMAP_OUT
 def domain():
     success_ips = []
