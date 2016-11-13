@@ -179,7 +179,7 @@ def generate_cmd_strings(args):
     zgrab_cmd.append("--tls")
 
     zgrab_cmd.append("--output-file=" + ZGRAB_OUT)
-    
+
     cmds = [zmap_cmd, ztee_cmd, zgrab_cmd]
 
     return cmds
@@ -243,10 +243,42 @@ def process_certs():
     zcerts_out_file.close()
     zgrab_out_file.close()
 
+# TODO: implement this
+# NOTE: this may actually be unnecessary (verify)
+def generate_cmd_strings_batch(args):
+
+# TODO: implement
+def grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, domains):
+
+# perform scans in batches when dealing with domain names
+def do_batches(args):
+    # open the file of domains to scan
+    with open(args.list_domains,"r") as dom_file:
+        count = 0
+        domains = []
+        # iterate over the file
+        for dom in dom_file:
+            dom = dom.strip()
+            if dom == "":
+                continue
+            count += 1
+            domains.append(dom)
+            # perform the scan/grab in batches of 10
+            if count % 10 == 0:
+                zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings_batch(args)
+                grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, domains)
+                domains = []
+        # perform a scan/grab on the remaining domains (in case we don't have a 
+        # multiple of 10)
+        if len(domains) != 0:
+            zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings_batch(args)
+            grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, domains)
+
 def main():
     global ZMAP_OUT, ZGRAB_OUT, ZCERTS_OUT
 
     args = parse_args()
+    import IPython; IPython.embed()
 
     if args.zmap_out:
         ZMAP_OUT = args.zmap_out
@@ -255,10 +287,11 @@ def main():
     if args.zcerts_out:
         ZCERTS_OUT = args.zcerts_out
 
-    zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args)
-    grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd)
+    if args.list_domains:
+        do_batches(args)
+    else:
+        zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args)
+        grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd)
     process_certs()
 
 main()
-
-
