@@ -210,7 +210,6 @@ def process_domains(domains):
             if ip not in ip_dom:
                 ip_dom[ip] = []
             ip_dom[ip].append(dom)
-        except:
     return ip_dom
 
 # execute zmap, ztee and zgrab
