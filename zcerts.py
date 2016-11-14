@@ -120,7 +120,7 @@ def parse_args():
     return parser.parse_args()
 
 # generate the bash commands for zmap, ztee and zgrab
-def generate_cmd_strings(args):
+def generate_cmd_strings(args, domains=None):
     zmap_cmd = ["sudo", "zmap"]
     
     zmap_cmd.append("-p")
@@ -165,6 +165,12 @@ def generate_cmd_strings(args):
             raise IOError("Path provided for list of IPs does not exist")
         zmap_cmd.append("-I")
         zmap_cmd.append(args.list_ips)
+    elif args.list_domains:
+        if domains is None:
+            raise ValueError("Improper function call; scanning by domains \
+                but no domain list passed as arg")
+        for dom in domains:
+            zmap_cmd.append(dom)
 
     ztee_cmd = ["ztee", ZMAP_OUT]
 
@@ -243,16 +249,14 @@ def process_certs():
     zcerts_out_file.close()
     zgrab_out_file.close()
 
-# TODO: implement this
-# NOTE: this may actually be unnecessary (verify)
-def generate_cmd_strings_batch(args):
-
 # TODO: implement
 def grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, domains):
 
 # perform scans in batches when dealing with domain names
 def do_batches(args):
     # open the file of domains to scan
+    if not os.path.exists(args.list_domains):
+        raise IOError("Path provided for list of domains does not exist")
     with open(args.list_domains,"r") as dom_file:
         count = 0
         domains = []
@@ -265,13 +269,13 @@ def do_batches(args):
             domains.append(dom)
             # perform the scan/grab in batches of 10
             if count % 10 == 0:
-                zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings_batch(args)
+                zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, domains=domains)
                 grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, domains)
                 domains = []
         # perform a scan/grab on the remaining domains (in case we don't have a 
         # multiple of 10)
         if len(domains) != 0:
-            zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings_batch(args)
+            zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, domains=domains)
             grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, domains)
 
 def main():
