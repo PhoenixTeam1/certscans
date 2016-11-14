@@ -120,7 +120,7 @@ def parse_args():
     return parser.parse_args()
 
 # generate the bash commands for zmap, ztee and zgrab
-def generate_cmd_strings(args, dom_ip=None):
+def generate_cmd_strings(args, ip_dom=None):
     zmap_cmd = ["sudo", "zmap"]
     
     zmap_cmd.append("-p")
@@ -166,11 +166,11 @@ def generate_cmd_strings(args, dom_ip=None):
         zmap_cmd.append("-I")
         zmap_cmd.append(args.list_ips)
     elif args.list_domains:
-        if dom_ip is None:
+        if ip_dom is None:
             raise ValueError("Improper function call; scanning by domains \
                 but no domain list passed as arg")
-        for dom in dom_ip:
-            zmap_cmd.append(dom_ip[dom])
+        for ip in ip_dom:
+            zmap_cmd.append(ip)
 
     ztee_cmd = ["ztee", ZMAP_OUT]
 
@@ -194,19 +194,24 @@ def generate_cmd_strings(args, dom_ip=None):
 
 # for a given list of domain names return a dict mapping them to an IP
 def process_domains(domains):
-    dom_ip = dict()
+    ip_dom = dict()
     for dom in domains:
         # skip dom if == "" ?
         try:
             ip = socket.gethostbyname(dom)
-            dom_ip[dom] = ip
+            if ip not in ip_dom:
+                ip_dom[ip] = []
+            ip_dom[ip].append(dom)
         except:
             print "Failed to resolve domain: %s" % dom
             # we default unresovable domains to 0.0.0.0 as per what the U.Mich
             # folks seem to do
-            ip = "0.0.0.0"
-            dom_ip[dom] = ip
-    return dom_ip
+            ip = "0.0.0.0"            
+            if ip not in ip_dom:
+                ip_dom[ip] = []
+            ip_dom[ip].append(dom)
+        except:
+    return ip_dom
 
 # execute zmap, ztee and zgrab
 def grab_certs(zmap_cmd, ztee_cmd, zgrab_cmd):
@@ -256,9 +261,32 @@ def process_certs():
     zgrab_out_file.close()
 
 # TODO: implement
-def grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, dom_ip):
+# NOTE: this ztee_cmd arg is currently unused; check to make sure we defintely 
+# don't need this and tghen remove its creation in the cmd string gen function 
+# as well
+def grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, ip_dom):
     zmap_proc = subprocess.Popen(zmap_cmd,stdout=subprocess.PIPE)
-    ztee_proc = subprocess.Popen()
+    # I'm going to do this so that everything is a blocking process and nothing
+    # is being processed as a stream; I'll try and optimize this later
+    # TODO: make this work as a stream
+    zmap_out, zmap_err = zmap_proc.communicate()
+    zmap_out = zmap_out.split("\n")
+    zgrab_in = []
+    for ip in zmap_out:
+        ip = ip.strip()
+        # what to do if ip == ""? 
+        # does ignoring this use-case cause any problems?
+        for dom in ip_dom[ip]:
+            pair = ip + "," + dom
+            zgrab_in.append(pair)
+    zgrab_in = "\n".join(zgrab_in)
+    zgrab_proc = subprocess.Popen(
+        zgrab_cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE)
+    zgrab_out,zgrab_err = zgrab_proc.communicate(zgrab_in)
+    with open(ZGRAB_OUT,"a") as zgrab_out_file:
+        zgrab_out_file.write(zgrab_out)
 
 # perform scans in batches when dealing with domain names
 def do_batches(args):
@@ -277,16 +305,16 @@ def do_batches(args):
             domains.append(dom)
             # perform the scan/grab in batches of 10
             if count % 10 == 0:
-                dom_ip = process_domains(domains)
-                zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, dom_ip=dom_ip)
-                grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, dom_ip)
+                ip_dom = process_domains(domains)
+                zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, ip_dom=ip_dom)
+                grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, ip_dom)
                 domains = []
         # perform a scan/grab on the remaining domains (in case we don't have a 
         # multiple of 10)
         if len(domains) != 0:
-            dom_ip = process_domains(domains)
-            zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, dom_ip=dom_ip)
-            grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, dom_ip)
+            ip_dom = process_domains(domains)
+            zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, ip_dom=ip_dom)
+            grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, ip_dom)
 
 def main():
     global ZMAP_OUT, ZGRAB_OUT, ZCERTS_OUT
@@ -300,6 +328,15 @@ def main():
         ZGRAB_OUT = args.zgrab_out
     if args.zcerts_out:
         ZCERTS_OUT = args.zcerts_out
+
+    # remove the output files if they already exist; important as we append to 
+    # files in the batch mode
+    if os.path.exists(ZMAP_OUT):
+        os.remove(ZMAP_OUT)
+    if os.path.exists(ZGRAB_OUT):
+        os.remove(ZGRAB_OUT)
+    if os.path.exists(ZCERTS_OUT):
+        os.remove(ZCERTS_OUT)
 
     if args.list_domains:
         do_batches(args)
