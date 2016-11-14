@@ -120,7 +120,7 @@ def parse_args():
     return parser.parse_args()
 
 # generate the bash commands for zmap, ztee and zgrab
-def generate_cmd_strings(args, domains=None):
+def generate_cmd_strings(args, dom_ip=None):
     zmap_cmd = ["sudo", "zmap"]
     
     zmap_cmd.append("-p")
@@ -166,11 +166,11 @@ def generate_cmd_strings(args, domains=None):
         zmap_cmd.append("-I")
         zmap_cmd.append(args.list_ips)
     elif args.list_domains:
-        if domains is None:
+        if dom_ip is None:
             raise ValueError("Improper function call; scanning by domains \
                 but no domain list passed as arg")
-        for dom in domains:
-            zmap_cmd.append(dom)
+        for dom in dom_ip:
+            zmap_cmd.append(dom_ip[dom])
 
     ztee_cmd = ["ztee", ZMAP_OUT]
 
@@ -184,7 +184,9 @@ def generate_cmd_strings(args, domains=None):
 
     zgrab_cmd.append("--tls")
 
-    zgrab_cmd.append("--output-file=" + ZGRAB_OUT)
+    # if this is a domain-based scan we will default to writing to stdout
+    if not args.list_domains:
+        zgrab_cmd.append("--output-file=" + ZGRAB_OUT)
 
     cmds = [zmap_cmd, ztee_cmd, zgrab_cmd]
 
@@ -200,6 +202,10 @@ def process_domains(domains):
             dom_ip[dom] = ip
         except:
             print "Failed to resolve domain: %s" % dom
+            # we default unresovable domains to 0.0.0.0 as per what the U.Mich
+            # folks seem to do
+            ip = "0.0.0.0"
+            dom_ip[dom] = ip
     return dom_ip
 
 # execute zmap, ztee and zgrab
@@ -250,7 +256,9 @@ def process_certs():
     zgrab_out_file.close()
 
 # TODO: implement
-def grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, domains):
+def grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, dom_ip):
+    zmap_proc = subprocess.Popen(zmap_cmd,stdout=subprocess.PIPE)
+    ztee_proc = subprocess.Popen()
 
 # perform scans in batches when dealing with domain names
 def do_batches(args):
@@ -269,14 +277,16 @@ def do_batches(args):
             domains.append(dom)
             # perform the scan/grab in batches of 10
             if count % 10 == 0:
-                zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, domains=domains)
-                grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, domains)
+                dom_ip = process_domains(domains)
+                zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, dom_ip=dom_ip)
+                grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, dom_ip)
                 domains = []
         # perform a scan/grab on the remaining domains (in case we don't have a 
         # multiple of 10)
         if len(domains) != 0:
-            zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, domains=domains)
-            grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, domains)
+            dom_ip = process_domains(domains)
+            zmap_cmd, ztee_cmd, zgrab_cmd = generate_cmd_strings(args, dom_ip=dom_ip)
+            grab_certs_batch(zmap_cmd, ztee_cmd, zgrab_cmd, dom_ip)
 
 def main():
     global ZMAP_OUT, ZGRAB_OUT, ZCERTS_OUT
