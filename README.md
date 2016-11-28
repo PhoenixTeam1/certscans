@@ -1,5 +1,5 @@
-# TrustHub/TrustBase
-Server authentication as an operating system service
+# Cert Tools
+A quick hodge podge of tools to do some certificate scans and testing
 
 ## Setup
 ### zcerts.py
